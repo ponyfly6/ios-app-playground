@@ -72,17 +72,22 @@ struct TaskListView: View {
                 noResultsView
             } else {
                 ForEach(filteredTasks) { task in
-                    TaskRowView(task: task)
-                        .swipeActions(edge: .trailing) {
-                            deleteButton(for: task)
-                        }
-                        .swipeActions(edge: .leading) {
-                            completeButton(for: task)
-                        }
+                    NavigationLink(value: task) {
+                        TaskRowView(task: task)
+                    }
+                    .swipeActions(edge: .trailing) {
+                        deleteButton(for: task)
+                    }
+                    .swipeActions(edge: .leading) {
+                        completeButton(for: task)
+                    }
                 }
             }
         }
         .listStyle(.insetGrouped)
+        .navigationDestination(for: TaskItem.self) { task in
+            TaskDetailView(task: task, categories: categories)
+        }
     }
     
     private var noResultsView: some View {
