@@ -3,7 +3,7 @@ import SwiftData
 import SwiftUI
 
 @Model
-final class TaskItem {
+final class TaskItem: Hashable {
     var id: UUID
     var title: String
     var taskDescription: String
@@ -30,6 +30,16 @@ final class TaskItem {
         self.isCompleted = false
         self.priority = priority
         self.category = category
+    }
+    
+    // MARK: - Hashable
+    
+    nonisolated func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    nonisolated static func == (lhs: TaskItem, rhs: TaskItem) -> Bool {
+        lhs.id == rhs.id
     }
 }
 
