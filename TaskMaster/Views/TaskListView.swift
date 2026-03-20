@@ -212,13 +212,37 @@ struct TaskListView: View {
         Button(role: .destructive) {
             withAnimation {
                 modelContext.delete(task)
+                updateWidget()
             }
         } label: {
             Label("Delete", systemImage: "trash")
         }
     }
-    
+
     private func completeButton(for task: TaskItem) -> some View {
+        Button {
+            withAnimation {
+                task.isCompleted.toggle()
+                task.updatedAt = Date()
+                updateWidget()
+            }
+        } label: {
+            Label(
+                task.isCompleted ? "Uncomplete" : "Complete",
+                systemImage: task.isCompleted ? "xmark.circle" : "checkmark.circle"
+            )
+        }
+        .tint(task.isCompleted ? .orange : .green)
+    }
+
+    // MARK: - Widget Updates
+
+    private func updateWidget() {
+        Task {
+            await WidgetDataManager.shared.updateWidgetData(tasks: allTasks)
+        }
+    }
+}
         Button {
             withAnimation {
                 task.isCompleted.toggle()
