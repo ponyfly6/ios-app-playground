@@ -5,11 +5,15 @@ struct TaskListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TaskItem.createdAt, order: .reverse) private var allTasks: [TaskItem]
     @Query(sort: \TaskCategory.name) private var categories: [TaskCategory]
-    
+
     @State private var viewModel = TaskListViewModel()
     @State private var showingAddTask = false
     @State private var showingSettings = false
     @State private var showingStatistics = false
+    @State private var showingBatchOperations = false
+
+    @State private var isEditMode = false
+    @State private var selectedTasks: Set<TaskItem> = []
     
     private var filteredTasks: [TaskItem] {
         viewModel.filterTasks(allTasks)
@@ -30,12 +34,26 @@ struct TaskListView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     HStack(spacing: 12) {
-                        statisticsButton
-                        settingsButton
+                        if isEditMode {
+                            editCancelButton
+                        } else {
+                            statisticsButton
+                            settingsButton
+                        }
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    addTaskButton
+                    HStack(spacing: 12) {
+                        if isEditMode {
+                            editActionsButton
+                        } else {
+                            editButton
+                        }
+
+                        if !isEditMode {
+                            addTaskButton
+                        }
+                    }
                 }
             }
             .searchable(text: $viewModel.searchText, prompt: "Search tasks")
@@ -47,6 +65,9 @@ struct TaskListView: View {
             }
             .sheet(isPresented: $showingStatistics) {
                 StatisticsView()
+            }
+            .sheet(isPresented: $showingBatchOperations) {
+                BatchOperationsView(selectedTasks: $selectedTasks, categories: categories)
             }
         }
     }
@@ -74,24 +95,30 @@ struct TaskListView: View {
     }
     
     private var taskListView: some View {
-        List {
+        List(selection: $selectedTasks) {
             if viewModel.hasActiveFilters && filteredTasks.isEmpty {
                 noResultsView
             } else {
                 ForEach(filteredTasks) { task in
-                    NavigationLink(value: task) {
-                        TaskRowView(task: task)
-                    }
-                    .swipeActions(edge: .trailing) {
-                        deleteButton(for: task)
-                    }
-                    .swipeActions(edge: .leading) {
-                        completeButton(for: task)
+                    if isEditMode {
+                        TaskSelectionRow(task: task, categories: categories, isSelected: selectedTasks.contains(task))
+                            .tag(task)
+                    } else {
+                        NavigationLink(value: task) {
+                            TaskRowView(task: task, categories: categories)
+                        }
+                        .swipeActions(edge: .trailing) {
+                            deleteButton(for: task)
+                        }
+                        .swipeActions(edge: .leading) {
+                            completeButton(for: task)
+                        }
                     }
                 }
             }
         }
         .listStyle(.insetGrouped)
+        .environment(\.editMode, .constant(isEditMode ? .active : .inactive))
         .navigationDestination(for: TaskItem.self) { task in
             TaskDetailView(task: task, categories: categories)
         }
@@ -140,7 +167,45 @@ struct TaskListView: View {
             Image(systemName: "plus")
         }
     }
-    
+
+    private var editButton: some View {
+        Button {
+            isEditMode = true
+            selectedTasks.removeAll()
+        } label: {
+            Image(systemName: "checkmark.circle")
+        }
+    }
+
+    private var editCancelButton: some View {
+        Button {
+            isEditMode = false
+            selectedTasks.removeAll()
+        } label: {
+            Image(systemName: "xmark.circle")
+        }
+    }
+
+    private var editActionsButton: some View {
+        Button {
+            if selectedTasks.isEmpty {
+                // Select all
+                selectedTasks = Set(filteredTasks)
+            } else {
+                // Show batch operations
+                showingBatchOperations = true
+            }
+        } label: {
+            if selectedTasks.isEmpty {
+                Text("Select All")
+            } else {
+                Text("Actions (\(selectedTasks.count))")
+                    .fontWeight(.semibold)
+            }
+        }
+        .disabled(isEditMode && filteredTasks.isEmpty && selectedTasks.isEmpty)
+    }
+
     // MARK: - Swipe Actions
     
     private func deleteButton(for task: TaskItem) -> some View {
