@@ -13,7 +13,9 @@ struct AddTaskView: View {
     @State private var hasDueDate = false
     @State private var priority: TaskPriority = .medium
     @State private var selectedCategory: TaskCategory?
-    
+    @State private var reminderEnabled = false
+    @State private var reminderTime: TaskReminderTime = .onDueDate
+
     @State private var showingAddCategory = false
     
     private var isFormValid: Bool {
@@ -28,6 +30,7 @@ struct AddTaskView: View {
                 dueDateSection
                 prioritySection
                 categorySection
+                reminderSection
             }
             .navigationTitle("New Task")
             .navigationBarTitleDisplayMode(.inline)
@@ -131,7 +134,29 @@ struct AddTaskView: View {
             }
         }
     }
-    
+
+    private var reminderSection: some View {
+        Section("Reminder") {
+            if hasDueDate {
+                Toggle("Enable Reminder", isOn: $reminderEnabled.animation())
+
+                if reminderEnabled {
+                    Picker("Remind Me", selection: $reminderTime) {
+                        ForEach(TaskReminderTime.allCases) { option in
+                            if option != .none {
+                                Label(option.displayName, systemImage: option.icon)
+                                    .tag(option)
+                            }
+                        }
+                    }
+                }
+            } else {
+                Text("Set a due date first to enable reminders")
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
     // MARK: - Actions
     
     private func saveTask() {
@@ -140,10 +165,20 @@ struct AddTaskView: View {
             description: description,
             dueDate: dueDate,
             priority: priority,
-            category: selectedCategory
+            category: selectedCategory,
+            reminderEnabled: reminderEnabled,
+            reminderTime: reminderEnabled ? reminderTime : nil
         )
-        
+
         modelContext.insert(task)
+
+        // Schedule notification if reminder is enabled
+        Task {
+            if reminderEnabled, reminderTime != nil {
+                try? await NotificationManager.shared.scheduleNotification(for: task, reminderTime: reminderTime)
+            }
+        }
+
         dismiss()
     }
 }

@@ -47,10 +47,14 @@ struct TaskRowView: View {
     
     private var metadataView: some View {
         HStack(spacing: 8) {
+            if !task.subTasks.isEmpty {
+                subTasksProgressBadge
+            }
+
             if let dueDate = task.dueDate {
                 dueDateBadge(dueDate)
             }
-            
+
             if let category = task.category {
                 categoryBadge(category)
             }
@@ -81,9 +85,25 @@ struct TaskRowView: View {
     }
     
     // MARK: - Helpers
-    
+
     private func isOverdue(_ date: Date) -> Bool {
         !task.isCompleted && date < Date()
+    }
+
+    private var subTasksCompletedCount: Int {
+        task.subTasks.filter { $0.isCompleted }.count
+    }
+
+    private var subTasksTotalCount: Int {
+        task.subTasks.count
+    }
+
+    private var subTasksProgressBadge: some View {
+        HStack(spacing: 2) {
+            Image(systemName: subTasksCompletedCount == subTasksTotalCount ? "checklist.checked" : "checklist")
+            Text("\(subTasksCompletedCount)/\(subTasksTotalCount)")
+        }
+        .foregroundStyle(subTasksCompletedCount == subTasksTotalCount ? .green : .secondary)
     }
 }
 

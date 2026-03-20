@@ -9,6 +9,7 @@ struct TaskListView: View {
     @State private var viewModel = TaskListViewModel()
     @State private var showingAddTask = false
     @State private var showingSettings = false
+    @State private var showingStatistics = false
     
     private var filteredTasks: [TaskItem] {
         viewModel.filterTasks(allTasks)
@@ -28,7 +29,10 @@ struct TaskListView: View {
             .navigationTitle("Tasks")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    settingsButton
+                    HStack(spacing: 12) {
+                        statisticsButton
+                        settingsButton
+                    }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     addTaskButton
@@ -40,6 +44,9 @@ struct TaskListView: View {
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView(viewModel: viewModel, categories: categories)
+            }
+            .sheet(isPresented: $showingStatistics) {
+                StatisticsView()
             }
         }
     }
@@ -109,7 +116,15 @@ struct TaskListView: View {
     }
     
     // MARK: - Toolbar Buttons
-    
+
+    private var statisticsButton: some View {
+        Button {
+            showingStatistics = true
+        } label: {
+            Image(systemName: "chart.bar.fill")
+        }
+    }
+
     private var settingsButton: some View {
         Button {
             showingSettings = true
