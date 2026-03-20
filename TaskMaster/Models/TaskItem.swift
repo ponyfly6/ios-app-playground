@@ -13,13 +13,20 @@ final class TaskItem: Hashable {
     var isCompleted: Bool
     var priority: TaskPriority
     var category: TaskCategory?
+    var reminderEnabled: Bool
+    var reminderTime: TaskReminderTime?
+
+    @Relationship(deleteRule: .cascade, inverse: \SubTask.parentTask)
+    var subTasks: [SubTask] = []
     
     init(
         title: String,
         description: String = "",
         dueDate: Date? = nil,
         priority: TaskPriority = .medium,
-        category: TaskCategory? = nil
+        category: TaskCategory? = nil,
+        reminderEnabled: Bool = false,
+        reminderTime: TaskReminderTime? = nil
     ) {
         self.id = UUID()
         self.title = title
@@ -30,6 +37,8 @@ final class TaskItem: Hashable {
         self.isCompleted = false
         self.priority = priority
         self.category = category
+        self.reminderEnabled = reminderEnabled
+        self.reminderTime = reminderTime
     }
     
     // MARK: - Hashable

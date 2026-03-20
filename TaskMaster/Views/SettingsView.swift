@@ -4,6 +4,10 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var viewModel: TaskListViewModel
     let categories: [TaskCategory]
+
+    @State private var showingCategoryManagement = false
+    @State private var showingNotificationSettings = false
+    @State private var showingExport = false
     
     var body: some View {
         NavigationStack {
@@ -11,6 +15,7 @@ struct SettingsView: View {
                 sortSection
                 filterSection
                 displaySection
+                managementSection
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -21,6 +26,15 @@ struct SettingsView: View {
                     }
                     .fontWeight(.semibold)
                 }
+            }
+            .sheet(isPresented: $showingCategoryManagement) {
+                CategoryManagementView()
+            }
+            .sheet(isPresented: $showingNotificationSettings) {
+                NotificationSettingsView()
+            }
+            .sheet(isPresented: $showingExport) {
+                ExportView()
             }
         }
     }
@@ -91,6 +105,28 @@ struct SettingsView: View {
     private var displaySection: some View {
         Section("Display") {
             Toggle("Show Completed Tasks", isOn: $viewModel.showingCompleted)
+        }
+    }
+
+    private var managementSection: some View {
+        Section("Management") {
+            Button {
+                showingCategoryManagement = true
+            } label: {
+                Label("Manage Categories", systemImage: "folder.badge.gearshape")
+            }
+
+            Button {
+                showingNotificationSettings = true
+            } label: {
+                Label("Notification Settings", systemImage: "bell.badge")
+            }
+
+            Button {
+                showingExport = true
+            } label: {
+                Label("Export Data", systemImage: "square.and.arrow.up")
+            }
         }
     }
 }

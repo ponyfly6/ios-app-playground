@@ -7,6 +7,6 @@ struct TaskMasterApp: App {
         WindowGroup {
             TaskListView()
         }
-        .modelContainer(for: [TaskItem.self, TaskCategory.self])
+        .modelContainer(for: [TaskItem.self, TaskCategory.self, SubTask.self])
     }
 }

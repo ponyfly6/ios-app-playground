@@ -15,6 +15,8 @@ struct TaskDetailView: View {
     @State private var priority: TaskPriority
     @State private var selectedCategory: TaskCategory?
     @State private var isCompleted: Bool
+    @State private var reminderEnabled: Bool
+    @State private var reminderTime: TaskReminderTime
     
     @State private var showingAddCategory = false
     
@@ -25,7 +27,7 @@ struct TaskDetailView: View {
     init(task: TaskItem, categories: [TaskCategory]) {
         self.task = task
         self.categories = categories
-        
+
         _title = State(initialValue: task.title)
         _description = State(initialValue: task.taskDescription)
         _dueDate = State(initialValue: task.dueDate)
@@ -33,6 +35,8 @@ struct TaskDetailView: View {
         _priority = State(initialValue: task.priority)
         _selectedCategory = State(initialValue: task.category)
         _isCompleted = State(initialValue: task.isCompleted)
+        _reminderEnabled = State(initialValue: task.reminderEnabled)
+        _reminderTime = State(initialValue: task.reminderTime ?? .onDueDate)
     }
     
     var body: some View {
@@ -44,6 +48,8 @@ struct TaskDetailView: View {
                 dueDateSection
                 prioritySection
                 categorySection
+                reminderSection
+                subTasksSection
             }
             .navigationTitle("Edit Task")
             .navigationBarTitleDisplayMode(.inline)
@@ -153,7 +159,35 @@ struct TaskDetailView: View {
             }
         }
     }
-    
+
+    private var reminderSection: some View {
+        Section("Reminder") {
+            if hasDueDate {
+                Toggle("Enable Reminder", isOn: $reminderEnabled.animation())
+
+                if reminderEnabled {
+                    Picker("Remind Me", selection: $reminderTime) {
+                        ForEach(TaskReminderTime.allCases) { option in
+                            if option != .none {
+                                Label(option.displayName, systemImage: option.icon)
+                                    .tag(option)
+                            }
+                        }
+                    }
+                }
+            } else {
+                Text("Set a due date first to enable reminders")
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var subTasksSection: some View {
+        Section {
+            SubTaskListView(task: task)
+        }
+    }
+
     // MARK: - Actions
     
     private func saveTask() {
@@ -164,7 +198,23 @@ struct TaskDetailView: View {
         task.category = selectedCategory
         task.isCompleted = isCompleted
         task.updatedAt = Date()
-        
+
+        // Update reminder settings
+        let reminderChanged = task.reminderEnabled != reminderEnabled || task.reminderTime != reminderTime
+        task.reminderEnabled = reminderEnabled
+        task.reminderTime = reminderEnabled ? reminderTime : nil
+
+        // Reschedule notification if reminder settings changed
+        if reminderChanged || task.isCompleted {
+            Task {
+                if task.isCompleted || !reminderEnabled {
+                    await NotificationManager.shared.cancelNotification(for: task)
+                } else if reminderEnabled, reminderTime != nil {
+                    try? await NotificationManager.shared.scheduleNotification(for: task, reminderTime: reminderTime)
+                }
+            }
+        }
+
         dismiss()
     }
 }
