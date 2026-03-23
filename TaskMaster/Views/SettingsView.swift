@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
@@ -8,13 +9,15 @@ struct SettingsView: View {
     @State private var showingCategoryManagement = false
     @State private var showingNotificationSettings = false
     @State private var showingExport = false
-    
+    @State private var widgetType: WidgetConfiguration.WidgetType = .pending
+
     var body: some View {
         NavigationStack {
             Form {
                 sortSection
                 filterSection
                 displaySection
+                widgetSection
                 managementSection
             }
             .navigationTitle("Settings")
@@ -105,6 +108,22 @@ struct SettingsView: View {
     private var displaySection: some View {
         Section("Display") {
             Toggle("Show Completed Tasks", isOn: $viewModel.showingCompleted)
+        }
+    }
+
+    private var widgetSection: some View {
+        Section("Widget") {
+            Picker("Widget Type", selection: $widgetType) {
+                ForEach(WidgetConfiguration.WidgetType.allCases) { type in
+                    Label(type.rawValue, systemImage: type.icon)
+                        .tag(type)
+                }
+            }
+            .onChange(of: widgetType) { _, newValue in
+                WidgetDataManager.shared.saveWidgetConfiguration(type: newValue)
+            }
+        } footer: {
+            Text("Choose which tasks to show in your home screen widget.")
         }
     }
 
